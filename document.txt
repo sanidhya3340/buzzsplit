@@ -1,1 +1,12 @@
 .\venv\Scripts\activate
+Core Features:
+Friends Management: Add friends.
+Groups Management: Add friends to groups.
+Transactions: Add transactions within groups.
+UI Navigation: Simple and intuitive navigation.
+
+Project Structure
+Home Page: Display groups and navigate to group details.
+Friends Page: Add friends.
+Group Details Page: Display group transactions and add transactions.
+Transaction Management: Add transactions in a group.
