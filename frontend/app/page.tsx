@@ -45,17 +45,19 @@ const Home: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
       <h2 className="text-2xl font-bold mb-4 text-grayGreen">Groups</h2>
+      <div className="flex justify-between items-center mb-4">
+        <Link className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-300" href="/friends">
+          Friends
+        </Link>
+      </div>
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {groups.map((group) =>{ 
-          
-          return (
+        {groups.map((group) => (
           <div key={group.id} className="p-4 border border-gray-300 rounded shadow-sm">
-            
-            <Link href={`/groups/${group.id}`}>
-              <h3 className="text-xl font-semibold mb-2 cursor-pointer">{group.name}</h3>
+            <Link href={`/groups/${group.id}`} className="text-xl font-semibold mb-2 cursor-pointer hover:text-blue-500 transition duration-300">
+                {group.name}
             </Link>
           </div>
-        )})}
+        ))}
       </div>
     </div>
   );

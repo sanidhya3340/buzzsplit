@@ -10,3 +10,54 @@ Home Page: Display groups and navigate to group details.
 Friends Page: Add friends.
 Group Details Page: Display group transactions and add transactions.
 Transaction Management: Add transactions in a group.
+
+
+1. Who Paid in the Transaction
+Questions:
+
+Current Transaction Model: What does your current transaction model look like?
+Backend Changes: Do you already have a field for the payer in your transaction model, or do we need to add one?
+Frontend Changes: How do you want to display and select the payer in the frontend?
+Suggestions:
+
+Backend: Add a payer field to the transaction model if it doesn't exist.
+Frontend: Use a dropdown or autocomplete field to select the payer from the list of users involved in the transaction.
+2. Frontend Information about How Much You Get and How Much You Owe
+Questions:
+
+Current State: What information do you currently display on the homepage?
+Calculations: How are you calculating how much a user gets and owes? Do you need help with the calculation logic?
+Design: How do you want this information displayed? Any specific UI/UX ideas?
+Suggestions:
+
+Backend: Create an API endpoint that calculates and returns the owed and received amounts for the logged-in user.
+Frontend: Fetch this data and display it prominently on the homepage.
+3. Splitting Equally and By Percentage
+Questions:
+
+Current Split Logic: How are you currently handling splits in transactions?
+User Interface: How do you want to enable users to select between equal split and percentage split?
+Validations: What kind of validations do you want to implement for the splits?
+Suggestions:
+
+Backend: Add logic to handle both equal splits and percentage splits in your transaction creation and update endpoints.
+Frontend: Provide toggle options for equal and percentage splits, and dynamically adjust input fields accordingly.
+4. Form Validations
+Questions:
+
+Current Form State: What forms do you currently have, and what validations are in place?
+Additional Validations: What specific validations do you want to add?
+Suggestions:
+
+Frontend: Use a validation library like Yup with Formik or React Hook Form to handle complex validations.
+Backend: Ensure that all critical validations are also enforced server-side to prevent invalid data from being saved.
+5. Email Notifications Using Celery
+Questions:
+
+Current Notification System: Do you have any notification system in place currently?
+Celery Setup: Is Celery already set up in your project, or do you need to set it up from scratch?
+Email Details: What email service are you planning to use (e.g., SMTP, a third-party service like SendGrid)?
+Suggestions:
+
+Backend: Implement a Celery task to send emails whenever a transaction is added, updated, or deleted.
+Frontend: Ensure that users are informed about these notifications and can opt-in/out if needed.

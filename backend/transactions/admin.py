@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Transaction, TransactionSplit
+from .models import Transaction, TransactionSplit, Payment
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
@@ -13,3 +13,8 @@ class TransactionSplitAdmin(admin.ModelAdmin):
     search_fields = ['transaction__description', 'user__username']
     list_filter = ['transaction__created_at']
 
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ['id', 'transaction', 'payer', 'amount', 'timestamp']
+    search_fields = ['transaction__description', 'payer__username']
+    list_filter = ['timestamp']

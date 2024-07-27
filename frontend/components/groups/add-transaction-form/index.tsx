@@ -1,7 +1,6 @@
 import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
-import { updateTransaction } from '@/api/transactions';
-import { getGroupUsers } from '@/api/relationships';
 import Modal from '@/components/Modal';
+import { getGroupUsers } from '@/api/relationships';
 
 interface User {
   id: number;
@@ -15,69 +14,58 @@ interface TransactionSplit {
   amount: number;
 }
 
-interface Transaction {
-  id: number;
-  description: string;
-  amount: number;
-  group: string;
-  splits: TransactionSplit[];
-  payer?: number; // Added payer field
-}
-
-interface EditTransactionFormProps {
-  onTransactionUpdated: () => void;
-  showEditForm: boolean;
-  setShowEditForm: (e: any) => void;
-  transaction: Transaction;
-}
-
 interface FormData {
   description: string;
   amount: number | string;
   group: string;
-  splits: { user: number; amount: number }[];
-  payer?: number; // Added payer field
+  splits: TransactionSplit[];
+  payer?: number;
 }
 
-const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
-  onTransactionUpdated,
-  showEditForm,
-  setShowEditForm,
-  transaction,
+interface AddTransactionFormProps {
+  groupId: string;
+  onAddTransaction: (newTransaction: FormData) => void;
+  setShowAddForm: (e: any) => void;
+}
+
+const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
+  groupId,
+  onAddTransaction,
+  setShowAddForm,
 }) => {
   const [formData, setFormData] = useState<FormData>({
-    description: transaction.description,
-    amount: transaction.amount,
-    group: transaction.group,
-    splits: transaction.splits.map((split) => ({ id: split.id, user: split.user.id, amount: split.amount })),
-    payer: transaction.payer,
+    description: '',
+    amount: '',
+    group: groupId,
+    splits: [],
   });
 
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[] | undefined>();
+  const [selectedPayer, setSelectedPayer] = useState<number | undefined>();
 
   const populateGroupUsers = async () => {
-    const data = await getGroupUsers(transaction.group);
+    const data = await getGroupUsers(groupId);
     setUsers(data);
   };
 
   useEffect(() => {
     populateGroupUsers();
-  }, [transaction.group]);
+  }, []);
 
   const handleSplitChange = (e: ChangeEvent<HTMLInputElement>, user: User) => {
     const { value } = e.target;
     const updatedSplits = formData.splits.map((split) =>
-      split.user === user.id ? { ...split, amount: parseFloat(value) } : split
+      split.user.id === user.id ? { ...split, amount: parseFloat(value) } : split
     );
     setFormData({ ...formData, splits: updatedSplits });
   };
 
   const handleUserToggle = (user: User) => {
-    const isUserSelected = formData.splits.some((split) => split.user === user.id);
+    const isUserSelected = formData.splits.some((split) => split.user.id === user.id);
     const updatedSplits = isUserSelected
-      ? formData.splits.filter((split) => split.user !== user.id)
-      : [...formData.splits, { id: null, user: user.id, amount: 0 }];
+      ? formData.splits.filter((split) => split.user.id !== user.id)
+      : [...formData.splits, { id: 0, user, amount: 0 }];
     setFormData({ ...formData, splits: updatedSplits });
   };
 
@@ -87,15 +75,16 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
   };
 
   const handlePayerChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedPayer(Number(e.target.value));
     setFormData({ ...formData, payer: Number(e.target.value) });
   };
 
   const validateSplits = () => {
-    const totalSplitsAmount = formData.splits.reduce((sum, split) => sum + parseFloat(split.amount as unknown as string) || 0, 0);
+    const totalSplitsAmount = formData.splits.reduce((sum, split) => sum + split.amount, 0);
     return totalSplitsAmount === parseFloat(formData.amount as string);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!validateSplits()) {
       setError('The sum of split amounts must equal the total transaction amount.');
@@ -103,17 +92,16 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
     }
     setError(null);
     try {
-      await updateTransaction(transaction.id, formData);
-      onTransactionUpdated();
-      setShowEditForm(false);
+      onAddTransaction(formData);
+      setShowAddForm(false);
     } catch (error) {
-      console.error('Error updating transaction:', error);
-      setError('Failed to update transaction. Please try again.');
+      console.error('Error adding transaction:', error);
+      setError('Failed to add transaction. Please try again.');
     }
   };
 
   return (
-    <Modal onClose={() => setShowEditForm(false)}>
+    <Modal onClose={() => setShowAddForm(false)}>
       <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-4">
         {error && <p className="text-red-500">{error}</p>}
         <div className="mb-4">
@@ -149,7 +137,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
           <select
             id="payer"
             name="payer"
-            value={formData.payer || ''}
+            value={selectedPayer}
             onChange={handlePayerChange}
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           >
@@ -169,7 +157,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
             <div key={user.id} className="flex items-center mt-1">
               <input
                 type="checkbox"
-                checked={formData.splits.some((split) => split.user === user.id)}
+                checked={formData.splits.some((split) => split.user.id === user.id)}
                 onChange={() => handleUserToggle(user)}
                 className="mr-2"
               />
@@ -177,11 +165,11 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               <input
                 type="number"
                 name="amount"
-                value={formData.splits.find((split) => split.user === user.id)?.amount || ''}
+                value={formData.splits.find((split) => split.user.id === user.id)?.amount || ''}
                 onChange={(e) => handleSplitChange(e, user)}
-                className={`w-1/4 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${!formData.splits.some((split) => split.user === user.id) ? 'opacity-50' : ''}`}
+                className={`w-1/4 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${!formData.splits.some((split) => split.user.id === user.id) ? 'opacity-50' : ''}`}
                 placeholder="Amount"
-                disabled={!formData.splits.some((split) => split.user === user.id)}
+                disabled={!formData.splits.some((split) => split.user.id === user.id)}
               />
             </div>
           ))}
@@ -190,12 +178,11 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
           type="submit"
           className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          Update Transaction
+          Add Transaction
         </button>
       </form>
     </Modal>
   );
 };
 
-export default EditTransactionForm;
-
+export default AddTransactionForm;

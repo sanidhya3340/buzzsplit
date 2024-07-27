@@ -1,14 +1,15 @@
-from rest_framework import viewsets
+from django.contrib.auth.models import User
+from rest_framework import viewsets, serializers, status
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
-from rest_framework.decorators import action
-from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import Transaction
-from .serializers import TransactionSerializer, CreateTransactionSerializer
+from rest_framework.views import APIView
+from rest_framework.decorators import action
+from .models import Transaction, TransactionSplit, Payment
+from .serializers import TransactionSerializer, CreateTransactionSerializer, PaymentSerializer
 
 class TransactionViewSet(viewsets.ModelViewSet):
-    queryset = Transaction.objects.all()
+    queryset = Transaction.objects.filter(is_deleted=False)
     authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -21,19 +22,77 @@ class TransactionViewSet(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
     def perform_update(self, serializer):
-        serializer.save()
+        instance = serializer.save()
+        paid_by = self.request.data.get('payer')
+        if paid_by:
+            instance.paid_by_id = paid_by
+            instance.save()
 
-    @action(detail=False, methods=['get'], url_path='group/(?P<group_id>[^/.]+)')
-    def list_by_group(self, request, group_id=None):
-        transactions = self.queryset.filter(group_id=group_id)
-        serializer = self.get_serializer(transactions, many=True)
-        return Response(serializer.data)
+        splits_data = self.request.data.get('splits', [])
+        existing_splits = {split.id: split for split in instance.splits.all()}
+
+        for split_data in splits_data:
+            user_id = split_data['user']
+            amount = split_data['amount']
+
+            split_id = split_data.get('id')
+            if split_id:
+                split_instance = existing_splits.get(split_id)
+                if split_instance:
+                    split_instance.amount = amount
+                    split_instance.save()
+            else:
+                TransactionSplit.objects.create(transaction=instance, user_id=user_id, amount=amount)
+
+        request_split_ids = [split_data.get('id') for split_data in splits_data if split_data.get('id')]
+        for split_id, split_instance in existing_splits.items():
+            if split_id not in request_split_ids:
+                split_instance.delete()
+
+    @action(detail=True, methods=['post'])
+    def deactivate(self, request, pk=None):
+        transaction = self.get_object()
+        transaction.is_deleted = True
+        transaction.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class GroupTransactionView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication, TokenAuthentication]
 
     def get(self, request, group_id):
-        transactions = Transaction.objects.filter(group_id=group_id)
+        transactions = Transaction.objects.filter(group_id=group_id, is_active=True, is_deleted=False)
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data)
+
+class PaymentViewSet(viewsets.ViewSet):
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request):
+        import ipdb;ipdb.set_trace();
+        payer = request.user
+        recipient_id = request.data.get('recipient')
+        amount = request.data.get('amount')
+        transaction_id = request.data.get('transaction_id')
+
+        if not recipient_id or not amount or not transaction_id:
+            return Response({'error': 'Recipient, transaction, and amount are required.'}, status=400)
+
+        try:
+            recipient = User.objects.get(id=recipient_id)
+            transaction = Transaction.objects.get(id=transaction_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Recipient not found.'}, status=404)
+        except Transaction.DoesNotExist:
+            return Response({'error': 'Transaction not found.'}, status=404)
+
+        payment = Payment.objects.create(
+            payer=payer,
+            recipient=recipient,
+            amount=amount,
+            transaction=transaction
+        )
+        serializer = PaymentSerializer(payment)
+        return Response(serializer.data, status=201)
+

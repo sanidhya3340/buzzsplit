@@ -1,6 +1,6 @@
 "use client"
 import { useState } from 'react';
-import Modal from './Modal';
+import Modal from '../Modal';
 import AddSplitForm from '../add-split-form';
 import AddTransactionForm from '../add-transaction-form';
 
