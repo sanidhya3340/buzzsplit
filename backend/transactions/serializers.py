@@ -12,12 +12,12 @@ class TransactionSplitSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TransactionSplit
-        fields = ['id', 'user', 'amount']
+        fields = ['id', 'user', 'amount_owed', 'amount_paid']
 
 class CreateTransactionSplitSerializer(serializers.ModelSerializer):
     class Meta:
         model = TransactionSplit
-        fields = ['user', 'amount']
+        fields = ['user', 'amount_owed', 'amount_paid']
 
 class TransactionSerializer(serializers.ModelSerializer):
     splits = TransactionSplitSerializer(many=True, read_only=True)
@@ -49,7 +49,8 @@ class CreateTransactionSerializer(serializers.ModelSerializer):
             split_id = split_data.get('id')
             if split_id:
                 split_instance = TransactionSplit.objects.get(id=split_id, transaction=instance)
-                split_instance.amount = split_data['amount']
+                split_instance.amount_owed = split_data['amount_owed']
+                split_instance.amount_paid = split_data.get('amount_paid', split_instance.amount_paid)
                 split_instance.save()
             else:
                 TransactionSplit.objects.create(transaction=instance, **split_data)

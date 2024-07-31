@@ -9,7 +9,7 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(TransactionSplit)
 class TransactionSplitAdmin(admin.ModelAdmin):
-    list_display = ['id', 'transaction', 'user', 'amount']
+    list_display = ['id', 'transaction', 'user', 'amount_owed', 'amount_paid']  # Updated field names
     search_fields = ['transaction__description', 'user__username']
     list_filter = ['transaction__created_at']
 

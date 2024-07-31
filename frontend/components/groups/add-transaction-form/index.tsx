@@ -12,6 +12,7 @@ interface TransactionSplit {
   id: number;
   user: User;
   amount: number;
+  amount_paid?: number; // add amount_paid here
 }
 
 interface FormData {
@@ -51,7 +52,7 @@ const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
 
   useEffect(() => {
     populateGroupUsers();
-  }, []);
+  }, [groupId]);
 
   const handleSplitChange = (e: ChangeEvent<HTMLInputElement>, user: User) => {
     const { value } = e.target;
@@ -137,7 +138,7 @@ const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
           <select
             id="payer"
             name="payer"
-            value={selectedPayer}
+            value={selectedPayer || ''}
             onChange={handlePayerChange}
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           >
@@ -150,7 +151,7 @@ const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
           </select>
         </div>
         <div className="mb-4">
-          <label htmlFor="splits" className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700">
             Splits
           </label>
           {users?.map((user) => (

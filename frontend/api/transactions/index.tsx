@@ -17,31 +17,45 @@ export const getTransactionsByGroup = async (groupId: number) => {
 };
 
 export const addTransaction = async (transactionData: any) => {
-  const requestOptions = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Token ${localStorage.getItem('csrftoken')}`,
-    },
-    body: JSON.stringify({
-      description: transactionData.description,
-      amount: parseFloat(transactionData.amount as string),
-      group: transactionData.group,
-      splits: transactionData.splits.map((split:any) => ({
-        user: split.user.id,
-        amount: split.amount
-      }))
-    })
+    try {
+      const formattedTransactionData = {
+        description: transactionData.description,
+        amount: parseFloat(transactionData.amount),
+        group: transactionData.group,
+        splits: transactionData.splits.map((split: any) => ({
+          user: split.user.id,
+          amount_owed: parseFloat(split.amount),
+          amount_paid: 0
+        })),
+        paid_by: transactionData.payer
+      };
+
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${localStorage.getItem('csrftoken')}`,
+        },
+        body: JSON.stringify(formattedTransactionData)
+      };
+
+      const response = await fetch(`${API_BASE_URL}/`, requestOptions);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to add transaction: ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      throw error;
+    }
   };
 
-  const response = await fetch(`${API_BASE_URL}/`, requestOptions);
-  if (!response.ok) {
-    throw new Error('Failed to add transaction');
-  }
-  return await response.json();
-};
 
 export const updateTransaction = async (transactionId: number, formData: any) => {
+  
   const response = await fetch(`${API_BASE_URL}/${transactionId}/`, {
     method: 'PATCH',
     headers: {
@@ -79,6 +93,8 @@ export const deleteTransaction = async (transactionId: number) => {
 };
 
 export const recordPayment = async (data: any) => {
+  console.log(data, "data");
+  
   const url = `${API_BASE_URL}/payments/record_payment/`;
   const requestOptions = {
     method: 'POST',

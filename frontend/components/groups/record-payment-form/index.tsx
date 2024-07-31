@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { recordPayment } from "@/api/transactions";
+import { useState } from 'react';
+import { recordPayment } from '@/api/transactions';
 
 const RecordPaymentForm: React.FC<{ 
   users: any[];
@@ -7,14 +7,25 @@ const RecordPaymentForm: React.FC<{
   setShowRecordPaymentForm: (value: boolean) => void;
   transactionId: number; // Add transactionId prop
 }> = ({ users, onRecordPayment, setShowRecordPaymentForm, transactionId }) => {
-  const [recipient, setRecipient] = useState("");
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
+  const [recipient, setRecipient] = useState<number | undefined>(undefined);
+  const [amount, setAmount] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await recordPayment({ recipient, amount, description, transaction_id: transactionId })
-    onRecordPayment();
+    if (!recipient || !amount || !description) {
+      alert('Please fill in all fields.');
+      return;
+    }
+    try {
+      const paymentDetails = { recipient, amount, description, transaction_id: transactionId };
+      await recordPayment(paymentDetails);
+      onRecordPayment(paymentDetails);
+      setShowRecordPaymentForm(false);
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      alert('Failed to record payment. Please try again.');
+    }
   };
 
   return (
@@ -23,8 +34,8 @@ const RecordPaymentForm: React.FC<{
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Recipient</label>
         <select
-          value={recipient}
-          onChange={(e) => setRecipient(e.target.value)}
+          value={recipient || ''}
+          onChange={(e) => setRecipient(Number(e.target.value))}
           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
         >
           <option value="">Select Recipient</option>

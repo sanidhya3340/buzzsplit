@@ -15,7 +15,10 @@ class Transaction(models.Model):
 class TransactionSplit(models.Model):
     transaction = models.ForeignKey(Transaction, related_name='splits', on_delete=models.CASCADE)
     user = models.ForeignKey(User, related_name='transaction_splits', on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount_owed = models.DecimalField(max_digits=10, decimal_places=2)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+    is_deleted = models.BooleanField(default=False)
 
 class Payment(models.Model):
     transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE)
